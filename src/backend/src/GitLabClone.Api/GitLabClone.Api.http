@@ -1,0 +1,6 @@
+@GitLabClone.Api_HostAddress = http://localhost:5072
+
+GET {{GitLabClone.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

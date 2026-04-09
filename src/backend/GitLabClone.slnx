@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GitLabClone.Api/GitLabClone.Api.csproj" />
+    <Project Path="src/GitLabClone.Application/GitLabClone.Application.csproj" />
+    <Project Path="src/GitLabClone.Domain/GitLabClone.Domain.csproj" />
+    <Project Path="src/GitLabClone.Infrastructure/GitLabClone.Infrastructure.csproj" />
+  </Folder>
+</Solution>

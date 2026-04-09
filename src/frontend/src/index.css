@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+/*
+ * Tailwind CSS v4 — uses CSS-first configuration.
+ * Custom theme tokens go here as CSS custom properties.
+ * No tailwind.config.ts needed with v4.
+ */
+
+@theme {
+  /* Brand colors — inspired by GitLab's palette */
+  --color-brand-50: #f5f0ff;
+  --color-brand-100: #ede5ff;
+  --color-brand-200: #ddd0ff;
+  --color-brand-300: #c4a8ff;
+  --color-brand-400: #a875ff;
+  --color-brand-500: #8b45ff;
+  --color-brand-600: #7c3aed;
+  --color-brand-700: #6d28d9;
+  --color-brand-800: #5b21b6;
+  --color-brand-900: #4c1d95;
+
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f8fafc;
+  --color-surface-tertiary: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* Pipeline status colors */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+
+  /* Sidebar width */
+  --spacing-sidebar: 16rem;
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-surface: #0f172a;
+    --color-surface-secondary: #1e293b;
+    --color-surface-tertiary: #334155;
+    --color-border: #334155;
+    --color-border-strong: #475569;
+  }
+}
+
+/* Base layer */
+@layer base {
+  body {
+    @apply bg-surface text-slate-800 antialiased dark:text-slate-200;
+    font-family: var(--font-sans);
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}

@@ -1,0 +1,187 @@
+# ─── GitLabClone CI/CD Pipeline ──────────────────────────────────────────────
+# GitLab CI equivalent of .github/workflows/ci.yml + cd.yml
+# Use this if hosting the project on GitLab instead of GitHub.
+# ─────────────────────────────────────────────────────────────────────────────
+
+stages:
+  - build
+  - test
+  - security
+  - package
+  - deploy
+
+variables:
+  DOTNET_VERSION: "9.0"
+  NODE_VERSION: "22"
+  ACR_NAME: acrgitlabclone
+  APP_NAME: gitlabclone
+  # Set in CI/CD Settings → Variables:
+  #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+  #   SQL_ADMIN_PASSWORD, JWT_SECRET
+
+# ─── Build ───────────────────────────────────────────────────────────────────
+backend-build:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:9.0
+  script:
+    - cd src/backend
+    - dotnet restore
+    - dotnet build --no-restore -c Release --warnaserror
+  artifacts:
+    paths:
+      - src/backend/**/bin/Release/
+    expire_in: 1 hour
+
+frontend-build:
+  stage: build
+  image: node:22-alpine
+  script:
+    - cd src/frontend
+    - npm ci
+    - npx tsc --noEmit
+    - npm run build
+  artifacts:
+    paths:
+      - src/frontend/dist/
+    expire_in: 1 hour
+
+# ─── Test ────────────────────────────────────────────────────────────────────
+backend-test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:9.0
+  needs: [backend-build]
+  services:
+    - name: mcr.microsoft.com/mssql/server:2022-latest
+      alias: sqlserver
+      variables:
+        ACCEPT_EULA: "Y"
+        MSSQL_SA_PASSWORD: "Ci_Test!Passw0rd"
+  variables:
+    ConnectionStrings__AppDb: "Server=sqlserver,1433;Database=GitLabClone_Test;User Id=sa;Password=Ci_Test!Passw0rd;TrustServerCertificate=True"
+  script:
+    - cd src/backend
+    - dotnet test --no-build -c Release --logger "trx" --collect:"XPlat Code Coverage"
+  artifacts:
+    when: always
+    paths:
+      - src/backend/**/TestResults/
+    reports:
+      junit: src/backend/**/TestResults/*.trx
+      coverage_report:
+        coverage_format: cobertura
+        path: src/backend/**/coverage.cobertura.xml
+
+frontend-lint:
+  stage: test
+  image: node:22-alpine
+  needs: [frontend-build]
+  script:
+    - cd src/frontend
+    - npm ci
+    - npx eslint . --max-warnings 0
+  allow_failure: true
+
+# ─── Security ────────────────────────────────────────────────────────────────
+nuget-audit:
+  stage: security
+  image: mcr.microsoft.com/dotnet/sdk:9.0
+  needs: [backend-build]
+  script:
+    - cd src/backend
+    - dotnet restore
+    - dotnet list package --vulnerable --include-transitive 2>&1 | tee vuln-report.txt
+    - "! grep -q 'Critical' vuln-report.txt"
+  artifacts:
+    paths:
+      - src/backend/vuln-report.txt
+    expire_in: 1 week
+
+npm-audit:
+  stage: security
+  image: node:22-alpine
+  needs: [frontend-build]
+  script:
+    - cd src/frontend
+    - npm ci
+    - npm audit --audit-level=high
+
+dotnet-format:
+  stage: security
+  image: mcr.microsoft.com/dotnet/sdk:9.0
+  needs: [backend-build]
+  script:
+    - cd src/backend
+    - dotnet restore
+    - dotnet format --verify-no-changes
+
+# ─── Package (Docker) ───────────────────────────────────────────────────────
+package-api:
+  stage: package
+  image: docker:27
+  services:
+    - docker:27-dind
+  needs: [backend-test, nuget-audit]
+  only:
+    - main
+  script:
+    - docker build -t $ACR_NAME.azurecr.io/gitlabclone-api:$CI_COMMIT_SHORT_SHA -f src/backend/Dockerfile src/backend/
+    - docker tag $ACR_NAME.azurecr.io/gitlabclone-api:$CI_COMMIT_SHORT_SHA $ACR_NAME.azurecr.io/gitlabclone-api:latest
+
+package-frontend:
+  stage: package
+  image: docker:27
+  services:
+    - docker:27-dind
+  needs: [frontend-build, npm-audit]
+  only:
+    - main
+  script:
+    - docker build -t $ACR_NAME.azurecr.io/gitlabclone-web:$CI_COMMIT_SHORT_SHA -f src/frontend/Dockerfile src/frontend/
+    - docker tag $ACR_NAME.azurecr.io/gitlabclone-web:$CI_COMMIT_SHORT_SHA $ACR_NAME.azurecr.io/gitlabclone-web:latest
+
+# ─── Deploy ──────────────────────────────────────────────────────────────────
+deploy-staging:
+  stage: deploy
+  image: mcr.microsoft.com/azure-cli:latest
+  needs: [package-api, package-frontend]
+  only:
+    - main
+  environment:
+    name: staging
+    url: https://ca-${APP_NAME}-web.azurecontainerapps.io
+  script:
+    - az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+    - az acr login -n $ACR_NAME
+    - |
+      # Push images
+      docker push $ACR_NAME.azurecr.io/gitlabclone-api:$CI_COMMIT_SHORT_SHA
+      docker push $ACR_NAME.azurecr.io/gitlabclone-web:$CI_COMMIT_SHORT_SHA
+    - |
+      # Update Container Apps
+      az containerapp update -n ca-${APP_NAME}-api -g rg-${APP_NAME} \
+        --image $ACR_NAME.azurecr.io/gitlabclone-api:$CI_COMMIT_SHORT_SHA
+      az containerapp update -n ca-${APP_NAME}-web -g rg-${APP_NAME} \
+        --image $ACR_NAME.azurecr.io/gitlabclone-web:$CI_COMMIT_SHORT_SHA
+    - |
+      # Smoke test
+      API_FQDN=$(az containerapp show -n ca-${APP_NAME}-api -g rg-${APP_NAME} --query "properties.configuration.ingress.fqdn" -o tsv)
+      curl -sf "https://$API_FQDN/health"
+      echo "Deployment successful!"
+
+deploy-production:
+  stage: deploy
+  image: mcr.microsoft.com/azure-cli:latest
+  needs: [deploy-staging]
+  only:
+    - main
+  when: manual  # Require manual approval for production
+  environment:
+    name: production
+    url: https://ca-${APP_NAME}-web.azurecontainerapps.io
+  script:
+    - az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+    - |
+      az containerapp update -n ca-${APP_NAME}-api -g rg-${APP_NAME}-prod \
+        --image $ACR_NAME.azurecr.io/gitlabclone-api:$CI_COMMIT_SHORT_SHA
+      az containerapp update -n ca-${APP_NAME}-web -g rg-${APP_NAME}-prod \
+        --image $ACR_NAME.azurecr.io/gitlabclone-web:$CI_COMMIT_SHORT_SHA
