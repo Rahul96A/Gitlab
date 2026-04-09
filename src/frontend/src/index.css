@@ -7,17 +7,17 @@
  */
 
 @theme {
-  /* Brand colors — inspired by GitLab's palette */
-  --color-brand-50: #f5f0ff;
-  --color-brand-100: #ede5ff;
-  --color-brand-200: #ddd0ff;
-  --color-brand-300: #c4a8ff;
-  --color-brand-400: #a875ff;
-  --color-brand-500: #8b45ff;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-800: #5b21b6;
-  --color-brand-900: #4c1d95;
+  /* Brand colors — GitLab orange / tangerine */
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-200: #fed7aa;
+  --color-brand-300: #fdba74;
+  --color-brand-400: #fb923c;
+  --color-brand-500: #f97316;
+  --color-brand-600: #ea580c;
+  --color-brand-700: #c2410c;
+  --color-brand-800: #9a3412;
+  --color-brand-900: #7c2d12;
 
   --color-surface: #ffffff;
   --color-surface-secondary: #f8fafc;
@@ -42,11 +42,11 @@
 /* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
   @theme {
-    --color-surface: #0f172a;
-    --color-surface-secondary: #1e293b;
-    --color-surface-tertiary: #334155;
-    --color-border: #334155;
-    --color-border-strong: #475569;
+    --color-surface: #1f1e24;
+    --color-surface-secondary: #28272e;
+    --color-surface-tertiary: #333238;
+    --color-border: #3f3e45;
+    --color-border-strong: #525159;
   }
 }
 

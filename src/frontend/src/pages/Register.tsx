@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useRegister } from "@/hooks/useAuth";
-import { FolderGit2 } from "lucide-react";
+import { GitLabLogo } from "@/components/ui/GitLabLogo";
 import { APP_NAME } from "@/lib/constants";
 
 export function Register() {
@@ -27,7 +27,7 @@ export function Register() {
     <div className="flex min-h-screen items-center justify-center bg-surface-secondary p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <FolderGit2 className="mx-auto h-10 w-10 text-brand-600" />
+          <GitLabLogo className="mx-auto h-12 w-12" />
           <h1 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">
             Create your {APP_NAME} account
           </h1>

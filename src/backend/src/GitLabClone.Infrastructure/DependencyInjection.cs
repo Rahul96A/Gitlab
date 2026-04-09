@@ -116,6 +116,9 @@ public static class DependencyInjection
         services.AddScoped<ICiYamlParser, CiYamlParser>();
         services.AddHostedService<SimulatedJobRunner>();
 
+        // Demo data seeder (applies migrations + seeds admin user)
+        services.AddHostedService<DemoDataSeeder>();
+
         // MediatR handlers in Infrastructure (for domain events that need infra services)
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 

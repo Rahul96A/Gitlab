@@ -1,11 +1,12 @@
 import { NavLink } from "react-router";
 import { cn } from "@/lib/utils";
 import {
-  FolderGit2,
   LayoutDashboard,
+  FolderGit2,
   Plus,
   Settings,
 } from "lucide-react";
+import { GitLabLogo } from "@/components/ui/GitLabLogo";
 import { APP_NAME } from "@/lib/constants";
 
 const navItems = [
@@ -19,7 +20,7 @@ export function Sidebar() {
     <aside className="fixed left-0 top-0 z-30 flex h-screen w-sidebar flex-col border-r border-border bg-surface-secondary">
       {/* Logo */}
       <div className="flex h-14 items-center gap-2 border-b border-border px-4">
-        <FolderGit2 className="h-6 w-6 text-brand-600" />
+        <GitLabLogo className="h-7 w-7" />
         <span className="text-lg font-semibold text-slate-900 dark:text-white">
           {APP_NAME}
         </span>
